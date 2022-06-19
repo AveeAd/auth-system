@@ -8,6 +8,7 @@ dotenv.config();
 
 //import routes
 import exampleRoute from './src/routes/exampleRoute';
+import authRoute from './src/routes/authRoute';
 
 //initialize app
 const app = express();
@@ -25,6 +26,7 @@ app.use(cors());
 
 //Routes
 app.use('/api/v1/example', exampleRoute);
+app.use('/api/v1/auth', authRoute);
 
 //start server
 const port = process.env.PORT || 5000;
