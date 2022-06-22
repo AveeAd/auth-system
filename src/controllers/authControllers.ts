@@ -37,14 +37,16 @@ export const LoginUser: ReqHandler = async (req, res) => {
 				} else {
 					if (process.env.JWT_SECRET) {
 						const accessToken = await jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, {
-							expiresIn: 5 * 60 * 1000,
+							expiresIn: 60,
 						});
 						const refreshToken = await jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, {
-							expiresIn: 7 * 24 * 60 * 60 * 1000,
+							expiresIn: 7 * 24 * 60 * 60,
 						});
-						res
-							.status(200)
-							.json({ success: true, message: 'Logged In Successfully', data: { accessToken, refreshToken } });
+						res.status(200).json({
+							success: true,
+							message: 'Logged In Successfully',
+							data: { accessToken, refreshToken, expiresIn: new Date(Date.now() + 60 * 1000).toISOString() },
+						});
 					} else {
 						res.status(500).json({ success: false, message: 'Internal Server Error' });
 					}
@@ -53,6 +55,33 @@ export const LoginUser: ReqHandler = async (req, res) => {
 		}
 	} catch (error) {
 		res.status(500).json({ success: false, message: 'Internal Server Error' });
+	}
+};
+
+export const renewToken: ReqHandler = async (req, res) => {
+	try {
+		const { refreshToken } = req.body;
+		if (refreshToken && process.env.JWT_SECRET) {
+			const decoded: any = await jwt.verify(refreshToken, process.env.JWT_SECRET);
+			if (decoded) {
+				const accessToken = await jwt.sign({ id: decoded.id, username: decoded.username }, process.env.JWT_SECRET, {
+					expiresIn: 60,
+				});
+				res
+					.status(200)
+					.json({
+						success: true,
+						message: 'Token Renewed Successfully',
+						data: { accessToken, expiresIn: new Date(Date.now() + 60 * 1000).toISOString() },
+					});
+			}
+		}
+	} catch (error: any) {
+		if (error?.message && error?.message.includes('jwt expired')) {
+			res.status(401).json({ success: false, message: 'Token Expired. Please login again!' });
+		} else {
+			res.status(500).json({ success: false, message: 'Internal Server Error' });
+		}
 	}
 };
 
